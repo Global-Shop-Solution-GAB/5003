@@ -1,0 +1,404 @@
+Program.Sub.ScreenSU.Start
+Gui.F_PriceReview..create
+Gui.F_PriceReview..caption("Mechem Price Review")
+Gui.F_PriceReview..size(19110,8985)
+Gui.F_PriceReview..minx(0)
+Gui.F_PriceReview..miny(0)
+Gui.F_PriceReview..position(0,0)
+Gui.F_PriceReview..event(UnLoad,f_partpricehist_unload)
+Gui.F_PriceReview..fontsize(9)
+Gui.F_PriceReview..forecolor(0)
+Gui.F_PriceReview..fontstyle(False,False,False,False)
+Gui.F_PriceReview..BackColor(-2147483633)
+Gui.F_PriceReview..mousepointer(0)
+Gui.F_PriceReview..sizeable(False)
+Gui.F_PriceReview.txt1.create(textbox,"",True,2625,315,0,225,300,True,0,Arial,9,-2147483643,1)
+Gui.F_PriceReview.txt1.maxLength(17)
+Gui.F_PriceReview.txt1.event(LostFocus,txt1_lostfocus)
+Gui.F_PriceReview.txt1.defaultvalue("")
+Gui.F_PriceReview.lbl1.create(label,"Part Number",True,1935,255,1,240,75,True,0,Arial,9,-2147483633,0)
+Gui.F_PriceReview.lbl1.defaultvalue("")
+Gui.F_PriceReview.cmdBrowsePart.create(button)
+Gui.F_PriceReview.cmdBrowsePart.caption("^")
+Gui.F_PriceReview.cmdBrowsePart.size(405,405)
+Gui.F_PriceReview.cmdBrowsePart.position(2970,225)
+Gui.F_PriceReview.cmdBrowsePart.fontsize(9)
+Gui.F_PriceReview.cmdBrowsePart.event(Click,cmdbrowse_click)
+Gui.F_PriceReview.cmdBrowsePart.defaultvalue("")
+Gui.F_PriceReview.lblProcess.create(label,"Processing.. Please Wait",True,2400,255,1,14700,300,True,0,Arial,9,-2147483633,0)
+Gui.F_PriceReview.lblProcess.defaultvalue("")
+Gui.F_PriceReview.tab1.Create(Tab)
+Gui.F_PriceReview.tab1.Size(18660,7560)
+Gui.F_PriceReview.tab1.Position(120,810)
+Gui.F_PriceReview.tab1.FontSize(9)
+Gui.F_PriceReview.tab1.Tabs(2)
+Gui.F_PriceReview.tab1.SetTab(0)
+Gui.F_PriceReview.tab1.Caption("Quote")
+Gui.F_PriceReview.tab1.SetTab(1)
+Gui.F_PriceReview.tab1.Caption("Invoice")
+Gui.F_PriceReview.GsGCQuote.Create(GsGridControl)
+Gui.F_PriceReview.GsGCQuote.Size(18405,7035)
+Gui.F_PriceReview.GsGCQuote.Position(90,90)
+Gui.F_PriceReview.GsGCQuote.Parent("tab1",0)
+Gui.F_PriceReview.GsGCInvoice.Create(GsGridControl)
+Gui.F_PriceReview.GsGCInvoice.Size(18405,7035)
+Gui.F_PriceReview.GsGCInvoice.Position(90,90)
+Gui.F_PriceReview.GsGCInvoice.Parent("tab1",1)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+V.Local.sIcon.Declare
+F.ODBC.Connection!conMain.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass,360)
+
+'Set flexgrid style for both flexgrids
+'F.Intrinsic.Control.CallSub(Gsflexgrid1_style)
+'F.Intrinsic.Control.CallSub(Gsflexgrid2_style)
+
+gui.F_PriceReview.lblProcess.Visible(False)
+F.Intrinsic.String.Build("{0}\ART\gss2.ico",V.Caller.GlobalDir,V.Local.sIcon)
+gui.F_PriceReview..Icon(V.Local.sIcon)
+
+Gui.F_PriceReview.tab1.Anchor(15)
+Gui.F_PriceReview.GsGCInvoice.Anchor(15)
+Gui.F_PriceReview.GsGCQuote.Anchor(15)
+Gui.F_PriceReview.tab1.SetTab(0)
+
+'F.Data.Dictionary.CreateFromSQL("dicInv","conMain","select distinct(left(part,17)), left(part,17) from v_inventory_mstr")
+'Gui.F_PriceReview.txt1.AddAutoCompleteItem("dicInv","Dictionary")
+'F.Data.Dictionary.Close("dicInv")
+
+gui.F_PriceReview..Show
+
+Program.Sub.Main.End
+
+Program.Sub.txt1_lostfocus.Start
+V.Local.bExist.Declare
+V.Local.iRet.Declare
+V.Local.sPart.Declare(String)
+V.Local.sQuery.Declare(String)
+
+'Get part number from the screen
+V.Local.sPart.Set(V.Screen.F_PriceReview!txt1.Text)
+F.Intrinsic.String.UCase(V.Local.sPart,V.Local.sPart)
+Gui.F_PriceReview.txt1.Text(V.Local.sPart)
+
+F.Intrinsic.Control.If(V.Local.sPart.Trim,<>,"")
+	F.Intrinsic.String.IsInString(V.Local.sPart,"%",True,V.Local.bExist)
+	F.Intrinsic.Control.If(V.Local.bExist)
+		F.Intrinsic.String.Split(V.Local.sPart,"%",V.Local.sPart)
+		V.Local.sPart.Set(V.Local.sPart(0))
+	F.Intrinsic.Control.EndIf
+	F.Intrinsic.String.Concat("SELECT PART FROM V_INVENTORY_MSTR WHERE RTRIM(LEFT(PART,17)) = '",V.Local.sPart.Trim,"'",V.Local.sQuery)
+	F.ODBC.Connection!conMain.OpenLocalRecordsetRO("rst",V.Local.sQuery)
+
+	'If part number does not exist in V_INVENTORY_MSTR, open the browser
+	F.Intrinsic.Control.If(V.ODBC.conMain!rst.EOF,=,True)
+		F.ODBC.conMain!rst.Close
+		F.Intrinsic.UI.Msgbox("The entered part number does not exist. Do you want to search manually?","Mechem Price Review [APAC]",4,V.Local.iRet)
+		
+		F.Intrinsic.Control.If(V.Local.iRet,=,6)
+			F.Intrinsic.Control.CallSub(Loadgsflexgrid,"sPart",V.Local.sPart.Trim,"bExist",V.Local.bExist)
+		F.Intrinsic.Control.EndIf
+'		F.Intrinsic.UI.Msgbox("The entered part number does not exist","NOTIFICATION")
+'		F.Intrinsic.Control.CallSub(Cmdbrowse_click)
+	'If part number exists, load the flexgrids
+	F.Intrinsic.Control.Else
+		F.ODBC.conMain!rst.Close
+'		F.Intrinsic.UI.Msgbox("Do you want to search manually?","Mechem Price Review [APAC]",4,V.Local.iRet)
+'		
+'		F.Intrinsic.Control.If(V.Local.iRet,=,6)
+			F.Intrinsic.Control.CallSub(Loadgsflexgrid,"sPart",V.Local.sPart.Trim,"bExist",V.Local.bExist)
+'		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+
+Program.Sub.txt1_lostfocus.End
+
+Program.Sub.cmdbrowse_click.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.iRet.Declare
+Variable.Local.sRet.Declare(String)
+Variable.Local.sTemp.Declare(String)
+Variable.Local.sTitles.Declare(String)
+Variable.Local.iWidths.Declare(Long)
+V.Local.sPart.Declare
+
+V.Local.iLength.Declare(Long)
+
+Function.Intrinsic.String.Split("Part Number*!*Rev*!*Description*!*Extra Description","*!*",Variable.local.sTitles)
+Function.Intrinsic.String.Split("1500*!*500*!*3000*!*3000","*!*",Variable.local.iWidths)
+
+F.Intrinsic.Debug.SetLA("Generating browser")
+F.Intrinsic.UI.Browser("Select Part Number","conMain","SELECT SUBSTRING(I1.PART,1,17), SUBSTRING(I1.PART,18,3), I1.DESCRIPTION, I2.TEXT FROM V_INVENTORY_MSTR I1 LEFT JOIN V_INV_EXTRA_TEXT I2 ON I1.PART = I2.PART ORDER BY I1.PART",V.Local.sTitles,V.Local.iWidths,V.Local.sRet)
+F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sRet)
+
+F.Intrinsic.Control.If(V.Local.sRet,<>,"***CANCEL***")
+'	F.Intrinsic.UI.Msgbox("Do you want to search manually?","Mechem Price Review [APAC]",4,V.Local.iRet)
+'		
+'	F.Intrinsic.Control.If(V.Local.iRet,=,6)
+		F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sRet)
+		gui.F_PriceReview.txt1.Text(V.Local.sRet(0).Trim)
+		F.Intrinsic.Control.CallSub(Loadgsflexgrid,"sPart",V.Local.sRet(0).Trim)
+'	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox("Part is not selected","NOTIFICATION")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+V.Local.sError.Declare(String)
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GAB_5003_PRICE_REVIEW.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.String.Concat(V.Local.sError,V.Ambient.NewLine,"Last Action: ",V.Ambient.NewLine,V.Ambient.LastAction,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.cmdbrowse_click.End
+
+Program.Sub.f_partpricehist_unload.Start
+F.ODBC.Connection!conMain.Close
+F.Intrinsic.Control.End
+
+Program.Sub.f_partpricehist_unload.End
+
+Program.Sub.loadGSFlexgrid.Start
+V.Local.bInString.Declare(Boolean)
+
+V.Local.i1.Declare(Long)
+V.Local.iLen.Declare(Long)
+
+V.Local.sCust.Declare(String)
+V.Local.sDesc.Declare(String)
+V.Local.sDropdown.Declare(String)
+V.Local.sPartQuote.Declare(String)
+V.Local.sQuery.Declare(String)
+V.Local.sRev.Declare(String)
+V.Local.sWO.Declare(String)
+V.Local.sWOSuffix.Declare(String)
+
+gui.F_PriceReview.lblProcess.Visible(True)
+'gui.F_PriceReview.dropdownlist1.Enabled(False)
+'gui.F_PriceReview.cmdShowAll.Enabled(False)
+gui.F_PriceReview.txt1.Enabled(False)
+gui.F_PriceReview.cmdBrowsePart.Enabled(False)
+Gui.F_PriceReview.tab1.Visible(False)
+'gui.F_PriceReview.dropdownlist1.ClearItems
+'gui.F_PriceReview.dropdownlist1.Text("")
+'gui.F_PriceReview.gsflexgrid1.Rows(1)
+'gui.F_PriceReview.gsflexgrid2.Rows(1)
+
+'Load information from V_QUOTE_LINES based on the selected part number
+F.Intrinsic.Control.If(V.DataTable.dtQuote.Exists,=,True)
+	F.Data.DataTable.Close("dtQuote")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Args.bExist,=,True)
+	F.Intrinsic.String.Concat("SELECT left(part,17) as Part, substring(part,18,3) as Rev, ' ' as CustomerName, QUOTE_NO as Quote, DATE_QUOTE as QuoteDate, QUOTE_CURR_CD as Currency, um_quote as UM, PRICE_QUOTE as Price,(rtrim(user_1)+' '+rtrim(user_2)+' '+rtrim(user_3)+' '+rtrim(user_4)+' '+rtrim(user_5)) as Description, info_1 as Info1, info_2 as Info2, CUSTOMER as Customer FROM V_QUOTE_LINES where PART LIKE '",V.Args.sPart.Trim,"%' ORDER BY PART,CUSTOMER,QUOTE_NO DESC",V.Local.sQuery)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Concat("SELECT substring(part,18,3) as Rev, ' ' as CustomerName, QUOTE_NO as Quote, DATE_QUOTE as QuoteDate, QUOTE_CURR_CD as Currency, um_quote as UM, PRICE_QUOTE as Price,(rtrim(user_1)+' '+rtrim(user_2)+' '+rtrim(user_3)+' '+rtrim(user_4)+' '+rtrim(user_5)) as Description, info_1 as Info1, info_2 as Info2, CUSTOMER as Customer FROM V_QUOTE_LINES where RTRIM(LEFT(PART,17)) = '",V.Args.sPart.Trim,"' ORDER BY PART,CUSTOMER,QUOTE_NO DESC",V.Local.sQuery)
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.CreateFromSQL("dtQuote","conMain",V.Local.sQuery,True)
+
+F.Data.Dictionary.CreateFromSQL("dicCust","conMain","select customer, name_customer from v_customer_master")
+F.Data.Dictionary.SetDefaultReturn("dicCust","")
+F.Data.DataTable.FillFromDictionary("dtQuote","dicCust","Customer","CustomerName")
+F.Data.Dictionary.Close("dicCust")
+
+Gui.F_PriceReview.GsGCQuote.AddGridviewFromDatatable("gvQuote","dtQuote")
+Gui.F_PriceReview.GsGCQuote.MainView("gvQuote")
+
+Gui.F_PriceReview.GsGCQuote.SetGridviewProperty("gvQuote","Showgrouppanel",True)
+Gui.F_PriceReview.GsGCQuote.SetGridviewProperty("gvQuote","AllowSort",True)
+Gui.F_PriceReview.GsGCQuote.SetGridviewProperty("gvQuote","AllowFilter",True)
+
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Customer","Visible",False)
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","CustomerName","Caption","Customer Name")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","QuoteDate","Caption","Date")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Info1","Caption","Info 1")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Info2","Caption","Info 2")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Rev","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","CustomerName","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Description","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Info1","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Info2","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Currency","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","UM","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Price","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Quote","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","QuoteDate","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Rev","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Currency","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","UM","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Quote","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","QuoteDate","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Rev","MinWidth","50")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","CustomerName","MinWidth","190")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Description","MinWidth","250")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Currency","MinWidth","60")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","UM","MinWidth","40")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Price","MinWidth","120")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Quote","MinWidth","80")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","QuoteDate","MinWidth","100")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Info1","MinWidth","150")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Info2","MinWidth","150")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Price","DisplayCustomNumeric","##,###,##0.00")
+Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","QuoteDate","DisplayCustomDatetime","d")
+
+F.Intrinsic.Control.If(V.Args.bExist,=,True)
+	Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Part","HeaderHAlignment","Center")
+	Gui.F_PriceReview.GsGCQuote.SetColumnProperty("gvQuote","Part","MinWidth","150")
+F.Intrinsic.Control.EndIf
+
+'Load information from V_ORDER_HIST_LINE based on the selected part number
+F.Intrinsic.Control.If(V.DataTable.dtInvoice.Exists,=,True)
+	F.Data.DataTable.Close("dtInvoice")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Args.bExist,=,True)
+	F.Intrinsic.String.Concat("SELECT DISTINCT ivc.INVOICE as Ref, left(ivc.part,17) as Part, substring(ivc.part,18,3) as Rev, rtrim(ivc.NAME_CUST_SHIP)+' '+rtrim(ivc.ADDRESS1_SHIP) as CustomerName,ivc.INVOICE as Invoice, ivc.date_invoice as InvoiceDate, ivc.ORDER_SUFFIX as Suffix, ivc.ORDER_CURRENCY as Currency, ivc.um as UM,ivc.PRICE_ORDER as Price, rtrim(job.COMMENTS_2)+' '+rtrim(job.COMMENTS_3) as Description1, rtrim(jobh.COMMENTS_2)+' '+rtrim(jobh.COMMENTS_3) as Description2, ivc.info_1 as Info1, ivc.info_2 as Info2 FROM V_ORDER_HIST_LINE ivc left join V_JOB_HEADER job on ivc.job = job.job and ivc.suffix = job.suffix left join V_JOB_HIST_MAST jobh on ivc.job = jobh.job and ivc.suffix = jobh.suffix WHERE ivc.PART LIKE '",V.Args.sPart.Trim,"%' ORDER BY ivc.PART,ivc.CUSTOMER,ivc.INVOICE DESC",V.Local.sQuery)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Concat("SELECT DISTINCT ivc.INVOICE as Ref, substring(ivc.part,18,3) as Rev, rtrim(ivc.NAME_CUST_SHIP)+' '+rtrim(ivc.ADDRESS1_SHIP) as CustomerName,ivc.INVOICE as Invoice, ivc.date_invoice as InvoiceDate, ivc.ORDER_SUFFIX as Suffix, ivc.ORDER_CURRENCY as Currency,ivc.um as UM,ivc.PRICE_ORDER as Price, rtrim(job.COMMENTS_2)+' '+rtrim(job.COMMENTS_3) as Description1, rtrim(jobh.COMMENTS_2)+' '+rtrim(jobh.COMMENTS_3) as Description2, ivc.info_1 as Info1, ivc.info_2 as Info2 FROM V_ORDER_HIST_LINE ivc left join V_JOB_HEADER job on ivc.job = job.job and ivc.suffix = job.suffix left join V_JOB_HIST_MAST jobh on ivc.job = jobh.job and ivc.suffix = jobh.suffix WHERE RTRIM(LEFT(ivc.PART,17)) = '",V.Args.sPart.Trim,"' ORDER BY ivc.PART,ivc.CUSTOMER,ivc.INVOICE DESC",V.Local.sQuery)
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.CreateFromSQL("dtInvoice","conMain",V.Local.sQuery,True)
+F.Data.DataTable.AddExpressionColumn("dtInvoice","Description","String","IIF(TRIM(Description1)<>'',Description1,Description2)")
+
+Gui.F_PriceReview.GsGCInvoice.AddGridviewFromDatatable("gvInvoice","dtInvoice")
+Gui.F_PriceReview.GsGCInvoice.MainView("gvInvoice")
+
+Gui.F_PriceReview.GsGCInvoice.SetGridviewProperty("gvInvoice","Showgrouppanel",True)
+Gui.F_PriceReview.GsGCInvoice.SetGridviewProperty("gvInvoice","AllowSort",True)
+Gui.F_PriceReview.GsGCInvoice.SetGridviewProperty("gvInvoice","AllowFilter",True)
+
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Ref","Visible",False)
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Description1","Visible",False)
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Description2","Visible",False)
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Rev","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","CustomerName","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Invoice","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","InvoiceDate","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Suffix","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Currency","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","UM","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Price","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Description","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Info1","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Info2","HeaderHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Rev","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Invoice","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","InvoiceDate","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Suffix","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Currency","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","UM","CellHAlignment","Center")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","InvoiceDate","Caption","Date")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","CustomerName","Caption","Customer Name")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Info1","Caption","Info 1")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Info2","Caption","Info 2")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Rev","MinWidth","50")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","CustomerName","MinWidth","190")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Invoice","MinWidth","80")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","InvoiceDate","MinWidth","100")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Suffix","MinWidth","60")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Currency","MinWidth","60")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","UM","MinWidth","40")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Price","MinWidth","120")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Description","MinWidth","250")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Info1","MinWidth","150")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Info2","MinWidth","150")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Price","DisplayCustomNumeric","##,###,##0.00")
+Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","InvoiceDate","DisplayCustomDatetime","d")
+
+F.Intrinsic.Control.If(V.Args.bExist,=,True)
+	Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Part","HeaderHAlignment","Center")
+	Gui.F_PriceReview.GsGCInvoice.SetColumnProperty("gvInvoice","Part","MinWidth","150")
+F.Intrinsic.Control.EndIf
+
+'F.ODBC.Connection!conMain.OpenRecordsetRO("rst",V.Local.sQuery)
+'
+'V.uGlobal.uPriceInvoice.Redim(0,0)
+'
+'V.Local.i1.Set(0)
+'F.Intrinsic.Control.DoUntil(V.ODBC.conMain!rst.EOF,=,True)
+'	V.uGlobal.uPriceInvoice.RedimPreserve(0,V.Local.i1)
+'		
+'	'Get the part revision
+'	V.Local.sPartQuote.Set(V.ODBC.conMain!rst.FieldValTrim!PART)
+'	F.Intrinsic.String.Len(V.Local.sPartQuote.Trim,V.Local.iLen)
+'	F.Intrinsic.Control.If(V.Local.iLen,>,17)
+'		F.Intrinsic.String.Mid(V.Local.sPartQuote,17,V.Local.sRev)
+'		V.uGlobal.uPriceInvoice(V.Local.i1)!REV.Set(V.Local.sRev)
+'	F.Intrinsic.Control.EndIf
+'	
+'	'Get the customer name
+'	F.Intrinsic.String.Concat(V.ODBC.conMain!rst.FieldValTrim!NAME_CUST_SHIP," ",V.ODBC.conMain!rst.FieldValTrim!ADDRESS1_SHIP,V.Local.sCust)
+'	V.uGlobal.uPriceInvoice(V.Local.i1)!CUSTOMER_NAME.Set(V.Local.sCust.Trim)
+'	
+'	F.Intrinsic.Control.If(V.Local.sDropdown.Trim,=,"")
+'		V.Local.sDropdown.Set(V.Local.sCust.Trim)
+'	F.Intrinsic.Control.Else
+'		F.Intrinsic.String.IsInString(V.Local.sDropdown.Trim,V.Local.sCust.Trim,True,V.Local.bInString)
+'		F.Intrinsic.Control.If(V.Local.bInString,=,False)
+'			F.Intrinsic.String.Concat(V.Local.sDropdown,"*!*",V.Local.sCust.Trim,V.Local.sDropdown)
+'		F.Intrinsic.Control.EndIf
+'	F.Intrinsic.Control.EndIf
+'
+'	'Get the process descriptions from V_ORDER_TO_WO and V_JOB_HEADER (Comment line 2 and 3)	
+'	F.Intrinsic.String.Concat("SELECT COMMENTS_2,COMMENTS_3 FROM V_JOB_HEADER WHERE JOB = '",V.ODBC.conMain!rst.FieldValTrim!JOB,"' AND SUFFIX = '",V.ODBC.conMain!rst.FieldValTrim!SUFFIX,"'",V.Local.sQuery)
+'	F.ODBC.Connection!conMain.OpenLocalRecordsetRO("rstAddl",V.Local.sQuery)
+'	F.Intrinsic.Control.If(V.ODBC.conMain!rstAddl.EOF,=,False)
+'		F.Intrinsic.String.Concat(V.ODBC.conMain!rstAddl.FieldValTrim!COMMENTS_2," ",V.ODBC.conMain!rstAddl.FieldValTrim!COMMENTS_3,V.Local.sDesc)
+'		V.uGlobal.uPriceInvoice(V.Local.i1)!DESCRIPTION.Set(V.Local.sDesc.Trim)
+'	F.Intrinsic.Control.Else
+'		F.ODBC.conMain!rstAddl.Close
+'		F.Intrinsic.String.Concat("SELECT COMMENTS_2,COMMENTS_3 FROM V_JOB_HIST_MAST WHERE JOB = '",V.ODBC.conMain!rst.FieldValTrim!JOB,"' AND SUFFIX = '",V.ODBC.conMain!rst.FieldValTrim!SUFFIX,"'",V.Local.sQuery)
+'		F.ODBC.Connection!conMain.OpenLocalRecordsetRO("rstAddl",V.Local.sQuery)
+'		F.Intrinsic.Control.If(V.ODBC.conMain!rstAddl.EOF,=,False)
+'			F.Intrinsic.String.Concat(V.ODBC.conMain!rstAddl.FieldValTrim!COMMENTS_2," ",V.ODBC.conMain!rstAddl.FieldValTrim!COMMENTS_3,V.Local.sDesc)
+'			V.uGlobal.uPriceInvoice(V.Local.i1)!DESCRIPTION.Set(V.Local.sDesc.Trim)
+'		F.Intrinsic.Control.EndIf
+'	F.Intrinsic.Control.EndIf
+'	
+'	F.ODBC.conMain!rstAddl.Close
+'	
+'	V.uGlobal.uPriceInvoice(V.Local.i1)!CURR.Set(V.ODBC.conMain!rst.FieldValTrim!ORDER_CURRENCY)
+'	V.uGlobal.uPriceInvoice(V.Local.i1)!PRICE.Set(V.ODBC.conMain!rst.FieldValFloat!PRICE)
+'	V.uGlobal.uPriceInvoice(V.Local.i1)!REF.Set(V.ODBC.conMain!rst.FieldValTrim!INVOICE)
+'	V.uGlobal.uPriceInvoice(V.Local.i1)!SUFFIX.Set(V.ODBC.conMain!rst.FieldValTrim!ORDER_SUFFIX)
+'	F.Intrinsic.Math.Add(V.Local.i1,1,V.Local.i1)
+'	F.ODBC.conMain!rst.MoveNext
+'F.Intrinsic.Control.Loop
+'
+'F.ODBC.conMain!rst.Close
+
+'gui.F_PriceReview.gsflexgrid2.Rows(2)
+'gui.F_PriceReview.gsflexgrid2.FixedRows(1)
+'gui.F_PriceReview.gsflexgrid2.LoadFromUDT("V.uGlobal.uPriceInvoice","REV::0*!*CUSTOMER_NAME::1*!*REF::2*!*SUFFIX::3*!*DESCRIPTION::4*!*CURR::5*!*PRICE::6",2)
+'
+'F.Intrinsic.String.Split(V.Local.sDropdown,"*!*",V.Local.sDropdown)
+'F.Intrinsic.Control.For(V.Local.i1,0,V.Local.sDropdown.UBound,1)
+'	gui.F_PriceReview.dropdownlist1.AddItem(V.Local.sDropdown(V.Local.i1).Trim)
+'F.Intrinsic.Control.Next(V.Local.i1)
+
+Gui.F_PriceReview.tab1.Visible(True)
+gui.F_PriceReview.lblProcess.Visible(False)
+'gui.F_PriceReview.dropdownlist1.Enabled(True)
+'gui.F_PriceReview.cmdShowAll.Enabled(True)
+gui.F_PriceReview.txt1.Enabled(True)
+gui.F_PriceReview.cmdBrowsePart.Enabled(True)
+
+
+Program.Sub.loadGSFlexgrid.End
+
+Program.Sub.Comments.Start
+${$0$}$INA_PART_PRICE_HIST$}$MHERTANTO$}$11/1/2016$}$False
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$This GAB is created for Mechem Engineering & Trading Pte., Ltd to assist the user who reviews the price history of a part taken from quotes and invoices before the price is put in invoice. This GAB is very customized where the selection of part number on screen does not include part revision (only 17 chars). Moreover, customer name is also taken from customer name and address 1 field because Mechem dedicates these two fields for customer name.
+
+Created by Maximilian Hertanto (12 January 2016)
+Program.Sub.Comments.End
+
