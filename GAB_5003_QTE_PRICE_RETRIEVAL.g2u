@@ -1,0 +1,251 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.FormPriceList..create
+Gui.FormPriceList..caption("Select a Line from Previous Quotes")
+Gui.FormPriceList..size(16245,5265)
+Gui.FormPriceList..minx(0)
+Gui.FormPriceList..miny(0)
+Gui.FormPriceList..position(0,0)
+Gui.FormPriceList..event(UnLoad,formpricelist_unload)
+Gui.FormPriceList..fontsize(10)
+Gui.FormPriceList..forecolor(0)
+Gui.FormPriceList..fontstyle(False,False,False,False)
+Gui.FormPriceList..BackColor(-2147483633)
+Gui.FormPriceList..mousepointer(0)
+Gui.FormPriceList..sizeable(False)
+Gui.FormPriceList.GsGCList.Create(GsGridControl)
+Gui.FormPriceList.GsGCList.Size(15855,4530)
+Gui.FormPriceList.GsGCList.Position(75,60)
+Gui.FormPriceList.GsGCList.Event(RowClick,flexgrid_mouseup)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Variable.UDT.uQuote.Define("QTY",Float,QTY_QUOTED)
+Variable.UDT.uQuote.Define("PRICE",Float,PRICE)
+Variable.UDT.uQuote.Define("DESCRIPTION",String)
+Variable.UDT.uQuote.Define("USER_1",String,USER_1)
+Variable.UDT.uQuote.Define("USER_2",String,USER_2)
+Variable.UDT.uQuote.Define("USER_3",String,USER_3)
+Variable.UDT.uQuote.Define("USER_4",String,USER_4)
+Variable.UDT.uQuote.Define("USER_5",String,USER_5)
+Variable.UDT.uQuote.Define("SHIP_ID",String,SHIP_ID)
+Variable.UDT.uQuote.Define("QUOTE",String,QUOTE_NO)
+Variable.UDT.uQuote.Define("DATE",Date,DATE_QUOTE)
+Variable.uGlobal.uQuote.Declare("uQuote")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sIcon.Declare
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,10260)
+	F.Intrinsic.Debug.SetLA("Calling Hook No. ",V.Caller.Hook)
+	V.Passed.000203.Set("Get Price")
+F.Intrinsic.Control.ElseIf(V.Caller.Hook,=,10690)
+	F.Intrinsic.Debug.SetLA("Calling Hook No. ",V.Caller.Hook)
+	F.Intrinsic.String.Build("{0}\ART\gss2.ico",V.Caller.GlobalDir,V.Local.sIcon)
+	Gui.FormPriceList..Icon(V.Local.sIcon)
+'	F.Intrinsic.Control.CallSub(Flexgrid_style)
+	F.Intrinsic.Control.CallSub(Flexgrid_load)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+V.Local.sError.Declare(String)
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GAB_5003_QTE_PRICE_RETRIEVAL.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.String.Concat(V.Local.sError,V.Ambient.NewLine,"Last Action: ",V.Ambient.NewLine,V.Ambient.LastAction,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.Main.End
+
+Program.Sub.flexgrid_mouseup.Start
+F.Intrinsic.Control.SetErrorHandler("RowClick_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.fExchRate.Declare(Float)
+V.Local.fPrice.Declare(Float)
+V.Local.fExchPrice.Declare(Float)
+V.Local.sOrdCurr.Declare
+V.Local.sCoCurr.Declare
+
+V.Local.fPrice.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).Price!FieldVal)
+V.Local.sOrdCurr.Set(V.Passed.000136)
+V.Local.sCoCurr.Set(V.Passed.000137)
+
+F.Intrinsic.Control.If(V.Local.sCoCurr.Trim,<>,V.Local.sOrdCurr.Trim)
+	V.Local.fExchRate.Set(V.Passed.000146)
+	F.Intrinsic.Math.Div(V.Local.fPrice,V.Local.fExchRate,V.Local.fExchPrice)
+	F.Intrinsic.Math.Round(V.Local.fExchPrice,5,V.Local.fExchPrice)
+F.Intrinsic.Control.Else
+	V.Local.fExchPrice.Set(V.Local.fPrice)
+F.Intrinsic.Control.EndIf
+
+V.Passed.000007.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).Quantity!FieldVal)
+V.Passed.000009.Set(V.Local.fExchPrice)
+
+V.Passed.000030.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).User1!FieldValTrim)
+V.Passed.000023.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).User2!FieldValTrim)
+V.Passed.000015.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).User3!FieldValTrim)
+V.Passed.000017.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).User4!FieldValTrim)
+Variable.Passed.000022.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).User5!FieldValTrim)
+V.Passed.000028.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).Info_1!FieldValTrim)
+V.Passed.000029.Set(V.DataTable.dtQtePrice(V.Args.RowIndex).Info_2!FieldValTrim)
+
+F.Intrinsic.Control.CallSub(formpricelist_unload)
+
+F.Intrinsic.Control.ExitSub
+
+V.Local.sError.Declare(String)
+F.Intrinsic.Control.Label("RowClick_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GAB_5003_QTE_PRICE_RETRIEVAL.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.String.Concat(V.Local.sError,V.Ambient.NewLine,"Last Action: ",V.Ambient.NewLine,V.Ambient.LastAction,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.flexgrid_mouseup.End
+
+Program.Sub.formpricelist_unload.Start
+F.Intrinsic.Control.SetErrorHandler("Unload_Err")
+F.Intrinsic.Control.ClearErrors
+
+F.Intrinsic.Debug.SetLA("Close all opened recordsets, close connection, and end the program.")
+
+'F.ODBC.Connection!conx.CloseRecordsets
+F.Intrinsic.Control.If(V.DataTable.dtQtePrice.Exists,=,True)
+	F.Data.DataTable.Close("dtQtePrice")
+F.Intrinsic.Control.EndIf
+F.ODBC.Connection!conx.Close
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+V.Local.sError.Declare(String)
+F.Intrinsic.Control.Label("Unload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GAB_5003_QTE_PRICE_RETRIEVAL.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.String.Concat(V.Local.sError,V.Ambient.NewLine,"Last Action: ",V.Ambient.NewLine,V.Ambient.LastAction,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.formpricelist_unload.End
+
+Program.Sub.flexgrid_load.Start
+F.Intrinsic.Control.SetErrorHandler("LoadData_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sPart.Declare(String)
+V.Local.sRev.Declare(String)
+
+F.Intrinsic.Debug.SetLA("Get part number and revision from quote line screen. Part no. ",V.Passed.000052.Trim," and rev ",V.Passed.000053.Trim)
+V.Local.sPart.Set(V.Passed.000052)
+V.Local.sRev.Set(V.Passed.000053)
+'F.Intrinsic.String.GSSPartString(V.Local.sPart.Trim,V.Local.sRev.Trim,V.Local.sPart)
+'F.Intrinsic.Control.If(V.Local.sRev,<>,"")
+'
+'	F.Intrinsic.Debug.SetLA("Reformat part number to include revision if there is a revision.")
+'	F.Intrinsic.String.RPad(V.Local.sPart," ",17,V.Local.sPart)
+'	F.Intrinsic.String.Concat(V.Local.sPart,V.Local.sRev,V.Local.sPart)
+'F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.sPart.Trim,=,"")
+	F.Intrinsic.UI.Msgbox("Please select a part number","NOTIFICATION")
+	F.Intrinsic.Control.CallSub(formpricelist_unload)
+F.Intrinsic.Control.EndIf
+
+V.Local.sCust.Declare(String)
+F.Intrinsic.Debug.SetLA("Get customer code (",V.Passed.000112,") from quote line screen.")
+V.Local.sCust.Set(V.Passed.000112)
+
+V.Local.sSQL.Declare(String)
+F.Intrinsic.String.Concat("SELECT DATE_QUOTE as QuoteDate, QUOTE_NO as Quote, ' ' as CustomerName, substring(part,18,3) as Rev, (rtrim(user_1)+' '+rtrim(user_2)+' '+rtrim(user_3)+' '+rtrim(user_4)+' '+rtrim(user_5)) as Description, QTY_QUOTED as Quantity, price as Price, user_1 as User1, user_2 as User2, user_3 as User3, user_4 as User4, user_5 as User5, Info_1, Info_2, customer as Customer FROM V_QUOTE_LINES WHERE rtrim(left(PART,17)) = '",V.Local.sPart.Trim,"' ORDER BY DATE_QUOTE DESC",V.Local.sSQL)
+'F.Intrinsic.String.Concat("SELECT DATE_QUOTE as QuoteDate, QUOTE_NO as Quote, SHIP_ID as ShipID, substring(part,18,3) as Rev, (rtrim(user_1)+' '+rtrim(user_2)+' '+rtrim(user_3)+' '+rtrim(user_4)+' '+rtrim(user_5)) as Description, QTY_QUOTED as Quantity, price as Price, user_1 as User1, user_2 as User2, user_3 as User3, user_4 as User4, user_5 as User5 FROM V_QUOTE_LINES WHERE PART like '",V.Local.sPart.Trim,"%' AND CUSTOMER = '",V.Local.sCust.Trim,"' ORDER BY DATE_QUOTE DESC",V.Local.sSQL)
+
+'F.Intrinsic.Debug.SetLA("Opening connection to database.")
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass,360)
+
+'F.Intrinsic.Debug.SetLA("Opening Connection to ",V.Ambient.PDSN," with the following query ",V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtQtePrice","conx",V.Local.sSQL,True)
+F.Data.Dictionary.CreateFromSQL("dicCust","conx","select customer, name_customer from v_customer_master")
+F.Data.Dictionary.SetDefaultReturn("dicCust","")
+F.Data.DataTable.FillFromDictionary("dtQtePrice","dicCust","Customer","CustomerName")
+F.Data.Dictionary.Close("dicCust")
+Gui.FormPriceList.GsGCList.AddGridviewFromDatatable("gvList","dtQtePrice")
+Gui.FormPriceList.GsGCList.MainView("gvList")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","User1","Visible",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","User2","Visible",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","User3","Visible",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","User4","Visible",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","User5","Visible",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Customer","Visible",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","QuoteDate","Caption","Date")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","CustomerName","Caption","Customer Name")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Description","Caption","Process")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Info_1","Caption","Info 1")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Info_2","Caption","Info 2")
+'Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","ShipID","Caption","Ship ID")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Quote","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","QuoteDate","HeaderHAlignment","Center")
+'Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","ShipID","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Rev","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","CustomerName","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Description","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Quantity","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Price","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Info_1","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Info_2","HeaderHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Quote","CellHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","QuoteDate","CellHAlignment","Center")
+'Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","ShipID","CellHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Rev","CellHAlignment","Center")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","QuoteDate","DisplayCustomDatetime","d")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Quantity","DisplayCustomNumeric","##,###,##0.00")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Price","DisplayCustomNumeric","##,###,##0.00")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Quote","MinWidth","80")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","QuoteDate","MinWidth","100")
+'Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","ShipID","MinWidth","90")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Rev","MinWidth","70")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","CustomerName","MinWidth","200")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Description","MinWidth","250")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Quantity","MinWidth","110")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Price","MinWidth","120")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Info_1","MinWidth","200")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Info_2","MinWidth","200")
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Quote","AllowEdit",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","QuoteDate","AllowEdit",False)
+'Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","ShipID","AllowEdit",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Customer","AllowEdit",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Rev","AllowEdit",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Description","AllowEdit",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Quantity","AllowEdit",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Price","AllowEdit",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Info_1","AllowEdit",False)
+Gui.FormPriceList.GsGCList.SetColumnProperty("gvList","Info_2","AllowEdit",False)
+
+Gui.FormPriceList.GsGCList.Anchor(15)
+Gui.FormPriceList..Show
+
+F.Intrinsic.Control.ExitSub
+
+V.Local.sError.Declare(String)
+F.Intrinsic.Control.Label("LoadData_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GAB_5003_QTE_PRICE_RETRIEVAL.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.String.Concat(V.Local.sError,V.Ambient.NewLine,"Last Action: ",V.Ambient.NewLine,V.Ambient.LastAction,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.flexgrid_load.End
+
+Program.Sub.Comments.Start
+${$0$}$INA_RETRIEVE_QUOTE_PRICE$}$MHERTANTO$}$18/8/2015$}$False
+${$3$}$0$}$$}$-1$}$-1$}$$}$1/1/1900$}$This GAB script is triggered by part number change in quote line (QTE201). Based on the selected part number, the script finds the latest quote by quote date which has the same part number and passes its user fields value (1 to 5) to the screen. Originally requested by Mechem Engineering & Trading Co. Pte Ltd.
+${$5$}$2.0.0.0$}$2
+${$6$}$dyunus$}$20200521193653636$}$xZ6SHi8g7O0Qsxe6AiO2NH3PnOKQRy0Tf0WxUhZrrzrsj885GgbohLUKG/AW0r28tkGTRCUAnyE=
+Program.Sub.Comments.End
+
